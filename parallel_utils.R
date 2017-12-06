@@ -38,7 +38,7 @@ open_PSC<-function(user, nodes, n.cores, verbose = F) {
     }
     
     psc<-list("config"=list("type"="psc"
-                            "def"=list("master"=primary
+                          , "def"=list("master"=primary
                                      , "machine.addresses"=machine.addresses
                                      , "n.cores"=n.cores
                                      , "cluster"=cluster)))
