@@ -37,11 +37,12 @@ open_PSC<-function(user, nodes, n.cores, verbose = F) {
         message(paste("Specifications of the cluster:", foreach::getDoParWorkers(), "cores", "spread over", length(machine.addresses), "nodes.\n"))
     }
     
-    psc.config<-list("master"=primary
-                   , "machine.addresses"=machine.addresses
-                   , "n.cores"=n.cores
-                   , "cluster"=cluster)
-    invisible(psc.config)
+    psc<-list("config"=list("type"="psc"
+                            "def"=list("master"=primary
+                                     , "machine.addresses"=machine.addresses
+                                     , "n.cores"=n.cores
+                                     , "cluster"=cluster)))
+    invisible(psc)
 }
 
 close_PSC<-function(cluster, verbose = F) {
