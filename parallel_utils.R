@@ -1,5 +1,5 @@
 # Build a Parallel Socket Cluster
-open_PSC<-function(user, nodes, n.cores, verbose = F, out.file.path = "_PSC_log.txt") {
+open_PSC<-function(user, nodes, n.cores, verbose = F, out.file.path = "") {
     library(doSNOW)
     library(doRNG)
     library(foreach)
