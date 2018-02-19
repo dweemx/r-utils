@@ -1,5 +1,5 @@
 # Build a Parallel Socket Cluster
-open_PSC<-function(user, nodes, n.cores, verbose = F) {
+open_PSC<-function(user, nodes, n.cores, verbose = F, out.file.path = "_PSC_log.txt") {
     library(doSNOW)
     library(doRNG)
     library(foreach)
@@ -27,7 +27,8 @@ open_PSC<-function(user, nodes, n.cores, verbose = F) {
     }
     cluster<-parallel::makeCluster(type='PSOCK',
                               master=primary,
-                              spec=spec)
+                              spec=spec,
+                              outfile=out.file.path)
     # Register the cluster
     if(verbose) {
         message("\nRegistering the workers in doPar backend...")
@@ -37,12 +38,11 @@ open_PSC<-function(user, nodes, n.cores, verbose = F) {
         message(paste("Specifications of the cluster:", foreach::getDoParWorkers(), "cores", "spread over", length(machine.addresses), "nodes.\n"))
     }
     
-    psc<-list("config"=list("type"="psc"
-                          , "def"=list("master"=primary
-                                     , "machine.addresses"=machine.addresses
-                                     , "n.cores"=n.cores
-                                     , "cluster"=cluster)))
-    invisible(psc)
+    psc.config<-list("master"=primary
+                   , "machine.addresses"=machine.addresses
+                   , "n.cores"=n.cores
+                   , "cluster"=cluster)
+    invisible(psc.config)
 }
 
 close_PSC<-function(cluster, verbose = F) {
