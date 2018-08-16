@@ -63,10 +63,10 @@ close_PSC<-function(cluster, verbose = F) {
     remove(cluster); 
 }
 
-goPaR<-function(title, l, ex, combine) {
-    if(monitorProgress) {
+goPaR<-function(title, l, ex, combine, cluster, monitor.progress) {
+    if(monitor.progress) {
         # Monitoring the progress
-        pb <- txtProgressBar(min=1, max=length(trajValNewPts), style=3)
+        pb <- txtProgressBar(min=1, max=length(l), style=3)
         progress <- function(n) setTxtProgressBar(pb, n)
         opts <- list(progress=progress)
     } else {
@@ -80,7 +80,6 @@ goPaR<-function(title, l, ex, combine) {
     
     if(cluster$config$type == "raw") {
         # Load utils to build the cluster
-        source("https://raw.githubusercontent.com/mase5/r-utils/master/parallel_utils.R")
         # Build the cluster
         message("Building the PS cluster...")
         cl <- open_PSC(user = cluster$config$def$user, nodes = cluster$config$def$nodes, n.cores = cluster$config$def$n.cores, verbose = cluster$config$def$verbose)
@@ -95,7 +94,7 @@ goPaR<-function(title, l, ex, combine) {
     suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts), ex))
     
     # Close the monitor progress
-    if(monitorProgress) {
+    if(monitor.progress) {
         close(pb)
     }
     
