@@ -62,3 +62,48 @@ close_PSC<-function(cluster, verbose = F) {
     invisible(gc)
     remove(cluster); 
 }
+
+goPaR<-function(title, l, ex, combine) {
+    if(monitorProgress) {
+        # Monitoring the progress
+        pb <- txtProgressBar(min=1, max=length(trajValNewPts), style=3)
+        progress <- function(n) setTxtProgressBar(pb, n)
+        opts <- list(progress=progress)
+    } else {
+        opts <- NULL
+    }
+    
+    library(doSNOW)
+    library(doRNG)
+    library(foreach)
+    library(doParallel)
+    
+    if(cluster$config$type == "raw") {
+        # Load utils to build the cluster
+        source("https://raw.githubusercontent.com/mase5/r-utils/master/parallel_utils.R")
+        # Build the cluster
+        message("Building the PS cluster...")
+        cl <- open_PSC(user = cluster$config$def$user, nodes = cluster$config$def$nodes, n.cores = cluster$config$def$n.cores, verbose = cluster$config$def$verbose)
+        cl.c <- cl$config$def$cluster
+    } else if(cluster$config$type == "psc") {
+        message("Please make sure that the PSC is closed after all computations are done!")
+        cl.c <- cluster$config$def$cluster
+    } else {
+        stop("The given cluster object is invalid!")
+    }
+
+    suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts), ex))
+    
+    # Close the monitor progress
+    if(monitorProgress) {
+        close(pb)
+    }
+    
+    if(cluster$config$type == "raw") {
+        # Close the PS cluster
+        message("Closing the PS cluster...")
+        close_PSC(cluster = cl.c, verbose = T)
+    }
+
+    return (out)
+}
