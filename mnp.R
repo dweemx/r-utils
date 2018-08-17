@@ -1,8 +1,14 @@
 #'
-#' MNP: mulit-node parallelism in R at its easiest
+#' MNP: mulit-node parallelism in R at its best
 #' Author: Maxime De Waegeneer
 #' 
-#'@example out<-mnp(l = c(1:100), f = function(x) {
+#'@example # Define a cluster with 1 node [address] and 2 cores.
+#'         cluster<-list(config=list(type="raw"
+#'                                 , def=list(user = "[username]"
+#'                                 , nodes = c("[address]")
+#'                                 , n.cores = c(2)
+#'                                 , verbose = T)))
+#'         out<-mnp(l = c(1:100), f = function(x) {
 #'            return (sqrt(t))
 #'         }, combine = sum, cluster = cluster, monitor.progress = monitorProgress)
 #'
@@ -10,7 +16,7 @@
 #'@name open_PSC
 #'@description    Create PSOCK cluster with the given nodes and the respective number of cores.
 #'@param user     User name to connect to the cluster.
-#'@param nodes    List of server names or IP adresses of the nodes.
+#'@param nodes    List of server names or IP addresses of the nodes.
 #'@param n.cores  List of number cores for each node. 
 #'@param verbose  Display some debug information.
 #'@param out.file.path File path where output will be written to.
