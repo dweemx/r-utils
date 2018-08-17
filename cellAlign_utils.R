@@ -17,32 +17,44 @@ cellAlignInterWeight<-function (expDataBatch, trajCond, winSz, numPts, cluster, 
   trajValNewPts = seq(from = min(trajCond), to = max(trajCond), 
                       length.out = numPts)
   source("https://raw.githubusercontent.com/mase5/r-utils/master/mnp.R")
-  print("Calculating new trajectory points...")
+  cat("\nCalculating new trajectory points...\n")
+  tic()
   ValNewPts<-mnp(l = trajValNewPts, f = function(trajPt) {
     dist2Others = trajCond - trajPt
     weightedData = exp(-(dist2Others^2)/(winSz^2))
     weightedData = weightedData/sum(weightedData)
     return(as.matrix(expDataBatch) %*% weightedData)
-  }, combine = cbind, cluster = cluster, monitor.progress = monitorProgress, expDataBatch)
-  
-  
+  }, combine = cbind, cluster = cluster, cluster.keep.open = T, monitor.progress = monitorProgress, expDataBatch)
+  tt<-toc()
+  elapsed.time.1<-as.numeric(tt$toc-tt$tic)
+  print(paste0("Elapsed time: ",elapsed.time.1))
   a = 1
   closestInt = sapply(trajCond, function(trajVal) {
     return(which.min(abs(trajValNewPts - trajVal)))
   })
-  print("Calculating error per gene...")
+  cat("\nCalculating error per gene...\n")
+  tic()
   errPerGene<-mnp(l = 1:nrow(expDataBatch), f = function(rowInd) {
     return(abs(expDataBatch[rowInd, ] - ValNewPts[rowInd,
                                                   closestInt]))
-  }, combine = rbind, cluster = cluster, monitor.progress = T, expDataBatch, ValNewPts, closestInt)
+  }, combine = rbind, cluster = cluster, cluster.keep.open = T, monitor.progress = T, expDataBatch, ValNewPts, closestInt)
+  tt<-toc()
+  elapsed.time.2<-as.numeric(tt$toc-tt$tic)
+  print(paste0("Elapsed time: ",elapsed.time.2))
   
-  print("Calculating error for interpolated values...")
+  cat("\nCalculating error for interpolated values...\n")
+  tic()
   errInterpolated<-mnp(l = trajValNewPts, f = function(trajPt) {
     dist2Others = trajCond - trajPt
     weightedData = exp(-(dist2Others^2)/(winSz^2))
     weightedData = weightedData/sum(weightedData)
     return(as.matrix(errPerGene) %*% weightedData)
-  }, combine = cbind, cluster = cluster, monitor.progress = T, errPerGene)
+  }, combine = cbind, cluster = cluster, cluster.keep.open = F, monitor.progress = T, errPerGene)
+  tt<-toc()
+  elapsed.time.3<-as.numeric(tt$toc-tt$tic)
+  print(paste0("Elapsed time: ",elapsed.time.3))
+  total.elapsed.time<-elapsed.time.1+elapsed.time.2+elapsed.time.3
+  print(paste0("Total elapsed time: ", total.elapsed.time))
   
   rownames(errInterpolated) = rownames(ValNewPts)
   return(list(interpolatedVals = ValNewPts, error = errInterpolated, traj = trajValNewPts))
