@@ -16,7 +16,7 @@ cellAlignInterWeight<-function (expDataBatch, trajCond, winSz, numPts, cluster, 
   }
   trajValNewPts = seq(from = min(trajCond), to = max(trajCond), 
                       length.out = numPts)
-  source("https://raw.githubusercontent.com/mase5/r-utils/master/mnp.R")
+  # source("https://raw.githubusercontent.com/mase5/r-utils/master/mnp.R")
   cat("\nCalculating new trajectory points...\n")
   tic()
   ValNewPts<-mnp(l = trajValNewPts, f = function(trajPt) {
@@ -25,6 +25,7 @@ cellAlignInterWeight<-function (expDataBatch, trajCond, winSz, numPts, cluster, 
     weightedData = weightedData/sum(weightedData)
     return(as.matrix(expDataBatch) %*% weightedData)
   }, combine = cbind, cluster = cluster, cluster.keep.open = T, monitor.progress = monitorProgress, expDataBatch)
+  cat("\n")
   tt<-toc()
   elapsed.time.1<-as.numeric(tt$toc-tt$tic)
   print(paste0("Elapsed time: ",elapsed.time.1))
@@ -38,6 +39,7 @@ cellAlignInterWeight<-function (expDataBatch, trajCond, winSz, numPts, cluster, 
     return(abs(expDataBatch[rowInd, ] - ValNewPts[rowInd,
                                                   closestInt]))
   }, combine = rbind, cluster = cluster, cluster.keep.open = T, monitor.progress = T, expDataBatch, ValNewPts, closestInt)
+  cat("\n")
   tt<-toc()
   elapsed.time.2<-as.numeric(tt$toc-tt$tic)
   print(paste0("Elapsed time: ",elapsed.time.2))
@@ -50,6 +52,7 @@ cellAlignInterWeight<-function (expDataBatch, trajCond, winSz, numPts, cluster, 
     weightedData = weightedData/sum(weightedData)
     return(as.matrix(errPerGene) %*% weightedData)
   }, combine = cbind, cluster = cluster, cluster.keep.open = F, monitor.progress = T, errPerGene)
+  cat("\n")
   tt<-toc()
   elapsed.time.3<-as.numeric(tt$toc-tt$tic)
   print(paste0("Elapsed time: ",elapsed.time.3))
