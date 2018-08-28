@@ -75,7 +75,7 @@ open_PSC<-function(user, nodes, n.cores, verbose = F, out.file.path = "") {
 close_PSC<-function(cluster, verbose = F) {
   # stop cluster and remove clients
   if(verbose) {
-    message("Closing the PS cluster...")
+    message("\nClosing the PS cluster...")
     message("\nStop cluster and remove clients.")
   }
   stopCluster(cluster$bin$cluster)
@@ -151,7 +151,7 @@ mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = 
   }
   
   out <- tryCatch({
-    suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts, .packages=packages, .export=export), f(x)))
+    suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts, .packages=packages), f(x)))
     return (out)
   }, error=function(cond) {
     message(cond)
