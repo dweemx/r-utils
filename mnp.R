@@ -133,7 +133,7 @@ stop_mnp<-function(cluster, monitor.progress, pb) {
 #'@param cluster.keep.open  Whether to close the cluster when the task is finished. If true, stopping the cluster has to be done by yourself.
 #'@param monitor.progress   Whether to show a progress bar.
 #'@param ...              
-mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = T, ...) {
+mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = T, packages=NULL, export=NULL, ...) {
   if(monitor.progress) {
     # Monitoring the progress
     pb <- txtProgressBar(min=1, max=length(l), style=3)
@@ -151,7 +151,7 @@ mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = 
   }
   
   out <- tryCatch({
-    suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts), f(x)))
+    suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts, .packages=packages, .export=export), f(x)))
     return (out)
   }, error=function(cond) {
     message(cond)
