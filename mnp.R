@@ -151,7 +151,7 @@ mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = 
   }
 
   if(!is.null(export.vars)) {
-    clusterExport(cl$bin$cluster, export.vars, envir = env)
+    parallel::clusterExport(cl$bin$cluster, export.vars, envir = env)
   }
   
   out <- tryCatch({
