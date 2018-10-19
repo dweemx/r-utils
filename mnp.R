@@ -196,6 +196,9 @@ mnp<-function(l, f, combine = NULL, cluster, cluster.type = "PSOCK", cluster.kee
     suppressPackageStartupMessages(out <- doRNG::"%dorng%"(foreach::foreach(x=l, .combine=combine, .options.snow = opts, .packages=packages), f(x)))
     return (out)
   }, error=function(cond) {
+    if(verbose) {
+      print("Error detected...")
+    }
     message(cond)
     stop_mnp(cluster = cl, monitor.progress = monitor.progress, pb = pb)
     return(NA)
@@ -204,6 +207,9 @@ mnp<-function(l, f, combine = NULL, cluster, cluster.type = "PSOCK", cluster.kee
     message(cond)
   },
   finally={
+    if(verbose) {
+      print("Finally closing the cluster...")
+    }
     if(!cluster.keep.open) {
       stop_mnp(cluster = cl, monitor.progress = monitor.progress, pb = pb)
     }
