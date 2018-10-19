@@ -153,7 +153,7 @@ stop_mnp<-function(cluster, monitor.progress, pb) {
   
   if(cluster$config$type == "raw") {
     # Close the PS cluster
-    close(cluster = cluster, verbose = T)
+    close(cluster = cluster$bin$cluster, verbose = T)
   }
 }
 
@@ -166,7 +166,7 @@ stop_mnp<-function(cluster, monitor.progress, pb) {
 #'@param cluster.keep.open  Whether to close the cluster when the task is finished. If true, stopping the cluster has to be done by yourself.
 #'@param monitor.progress   Whether to show a progress bar.
 #'@param ...              
-mnp<-function(l, f, combine, cluster, cluster.type, cluster.keep.open = F, monitor.progress = T, packages = NULL, export.vars = NULL, env = NULL, ...) {
+mnp<-function(l, f, combine, cluster, cluster.type = "PSOCK", cluster.keep.open = F, monitor.progress = T, verbose = F, packages = NULL, export.vars = NULL, env = NULL, ...) {
   if(monitor.progress) {
     # Monitoring the progress
     pb <- txtProgressBar(min=1, max=length(l), style=3)
@@ -181,6 +181,11 @@ mnp<-function(l, f, combine, cluster, cluster.type, cluster.keep.open = F, monit
     cl<-cluster
   } else {
     cl<-start_mnp(cluster = cluster, cluster.type = cluster.type)
+  }
+
+  if(verbose) {
+    print("Cluster information:")
+    print(cl)
   }
   
   if(!is.null(export.vars)) {
