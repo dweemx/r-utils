@@ -104,6 +104,7 @@ close<-function(cluster, verbose = F) {
   if(verbose) {
     message("\nClosing the PS cluster...")
     message("\nStop cluster and remove clients.")
+    print(cluster)
   }
   stopCluster(cluster$bin$cluster)
   
@@ -148,7 +149,7 @@ start_mnp<-function(cluster, cluster.type = "PSOCK") {
 stop_mnp<-function(cluster, monitor.progress, pb) {
   # Close the monitor progress
   if(monitor.progress) {
-    close(pb)
+    base::close(pb)
   }
   
   if(cluster$config$type == "raw") {
