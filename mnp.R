@@ -9,7 +9,7 @@
 #'                                 , n.cores = c(2)
 #'                                 , verbose = T)))
 #'         out<-mnp(l = c(1:100), f = function(x) {
-#'            return (sqrt(t))
+#'            return (sqrt(l))
 #'         }, combine = sum, cluster = cluster, monitor.progress = monitorProgress)
 #'
 
@@ -18,61 +18,88 @@ library(doRNG)
 library(foreach)
 library(doParallel)
 
-#'@name open_PSC
-#'@description    Create PSOCK cluster with the given nodes and the respective number of cores.
-#'@param user     User name to connect to the cluster.
-#'@param nodes    List of server names or IP addresses of the nodes.
-#'@param n.cores  List of number cores for each node. 
-#'@param verbose  Display some debug information.
-#'@param out.file.path File path where output will be written to.
-open_PSC<-function(user, nodes, n.cores, verbose = F, out.file.path = "") {
+#'@name open
+#'@description  Create PSOCK cluster with the given nodes and the respective number of cores.
+#'@param cluster.type   Type of the cluster to 
+#'@param user           User name to connect to the cluster.
+#'@param nodes          List of server names or IP addresses of the nodes.
+#'@param n.cores        List of number cores for each node. 
+#'@param verbose        Display some debug information.
+#'@param out.file.path  File path where output will be written to.
+open<-function(cluster.type = "PSOCK", user = NULL, nodes = NULL, n.cores = NULL, verbose = F, out.file.path = "") {
+  
+  if(cluster.type == "PSOCK") {
+    if(is.null(nodes)) {
+      stop("List of nodes should be defined when build a PSOCK cluster.")
+    }
+    
+    if(is.null(nodes)) {
+      stop("List of number of cores/node should be defined when build a PSOCK cluster.")
+    }
+  }
+  
   if(length(nodes) != length(n.cores)) {
     stop("Number of nodes should be the same length as the list of number of cores/node.")
   }
-  machine.addresses<-lapply(X = seq_along(nodes), FUN = function(i) {
-    list(host=nodes[i], user=user, ncore=n.cores[i])
-  })
   
-  # Set the first node as master node
-  primary<-machine.addresses[[1]]$host
+  if(cluster.type == "MPI") {
+    if(verbose) {
+      message("Building the MPI cluster...")
+    }
+    library(Rmpi)
+    cluster<-makeCluster(mpi.universe.size(), type="MPI")
+    config<-list("mpi.universe"=mpi.universe.size()
+               , "cluster"=cluster)
+  } else if(cluster.type == "PSOCK") {
+    print("Creating the PSOCK specification...")
+    machine.addresses<-lapply(X = seq_along(nodes), FUN = function(i) {
+      list(host=nodes[i], user=user, ncore=n.cores[i])
+    })
+    
+    # Set the first node as master node
+    primary<-machine.addresses[[1]]$host
+    
+    spec<-lapply(machine.addresses, 
+                 function(machine) {
+                   rep(list(list(host=machine$host,
+                                 user=machine$user)),
+                       machine$ncore)
+                 }
+    )
+    spec<-unlist(spec,recursive=FALSE)
+    
+    if(verbose) {
+      message("Building the PSOCK cluster...")
+    }
+    cluster<-parallel::makeCluster(type='PSOCK',
+                                   master=primary,
+                                   spec=spec,
+                                   outfile=out.file.path)
   
-  spec<-lapply(machine.addresses, 
-               function(machine) {
-                 rep(list(list(host=machine$host,
-                               user=machine$user)),
-                     machine$ncore)
-               }
-  )
-  spec<-unlist(spec,recursive=FALSE)
-  
-  if(verbose) {
-    message("Building the PS cluster...")
+    config<-list("master"=primary
+               , "machine.addresses"=machine.addresses
+               , "n.cores"=n.cores
+               , "cluster"=cluster)
+  } else {
+    stop(paste0("The given cluster.type ",cluster.type," is not recognized."))
   }
-  cluster<-parallel::makeCluster(type='PSOCK',
-                                 master=primary,
-                                 spec=spec,
-                                 outfile=out.file.path)
+
   # Register the cluster
   if(verbose) {
     message("\nRegistering the workers in doPar backend...")
   }
   registerDoSNOW(cluster)
-  if(verbose) {
+  if(verbose & cluster.type == "PSOCK") {
     message(paste("Specifications of the cluster:", foreach::getDoParWorkers(), "cores", "spread over", length(machine.addresses), "nodes.\n"))
   }
-  
-  psc.config<-list("master"=primary
-                   , "machine.addresses"=machine.addresses
-                   , "n.cores"=n.cores
-                   , "cluster"=cluster)
-  invisible(psc.config)
+  invisible(config)
 }
 
-#'@name close_PSC
+#'@name close
 #'@description    Close the given PSOCK cluster.
-#'@param cluster  Cluster object returned by open_PSC.
+#'@param cluster  Cluster object returned by open.
 #'@param verbose  Display some debug information.
-close_PSC<-function(cluster, verbose = F) {
+close<-function(cluster, verbose = F) {
   # stop cluster and remove clients
   if(verbose) {
     message("\nClosing the PS cluster...")
@@ -93,23 +120,29 @@ close_PSC<-function(cluster, verbose = F) {
 
 #'@name start_mnp
 #'@description    Start the multi-node parallelism cluster.
-#'@param cluster  Cluster object returned by open_PSC.
-start_mnp<-function(cluster) {
-  if(cluster$config$type == "raw") {
-    # Build the cluster
-    cl <- open_PSC(user = cluster$config$def$user, nodes = cluster$config$def$nodes, n.cores = cluster$config$def$n.cores, verbose = cluster$config$def$verbose)
+#'@param cluster  Cluster object returned by open.
+start_mnp<-function(cluster, cluster.type = "PSOCK") {
+  if(cluster.type == "PSOCK") {
+    if(cluster$config$type == "raw") {
+      # Build the cluster
+      cl <- open(cluster.type = cluster.type, user = cluster$config$def$user, nodes = cluster$config$def$nodes, n.cores = cluster$config$def$n.cores, verbose = cluster$config$def$verbose)
+      cluster$bin<-cl
+      return (cluster)
+    } else if(cluster$config$type == "psc") {
+      message("Please make sure that the PSC is closed after all computations are done!")
+    } else {
+      stop("The given cluster object is invalid!")
+    }
+  } else if(cluster.type == "MPI") {
+    cl <- open(cluster.type = "MPI", verbose = T)
     cluster$bin<-cl
     return (cluster)
-  } else if(cluster$config$type == "psc") {
-    message("Please make sure that the PSC is closed after all computations are done!")
-  } else {
-    stop("The given cluster object is invalid!")
   }
 }
 
 #'@name stop_mnp
 #'@description              Stop the multi-node parallelism cluster.
-#'@param cluster            Cluster object returned by open_PSC.
+#'@param cluster            Cluster object returned by open.
 #'@param monitor.progress   Whether to display the progress bar.
 #'@param pb                 Progress bar object.
 stop_mnp<-function(cluster, monitor.progress, pb) {
@@ -120,7 +153,7 @@ stop_mnp<-function(cluster, monitor.progress, pb) {
   
   if(cluster$config$type == "raw") {
     # Close the PS cluster
-    close_PSC(cluster = cluster, verbose = T)
+    close(cluster = cluster, verbose = T)
   }
 }
 
@@ -133,7 +166,7 @@ stop_mnp<-function(cluster, monitor.progress, pb) {
 #'@param cluster.keep.open  Whether to close the cluster when the task is finished. If true, stopping the cluster has to be done by yourself.
 #'@param monitor.progress   Whether to show a progress bar.
 #'@param ...              
-mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = T, packages=NULL, export.vars=NULL, ...) {
+mnp<-function(l, f, combine, cluster, cluster.type, cluster.keep.open = F, monitor.progress = T, packages = NULL, export.vars = NULL, env = NULL, ...) {
   if(monitor.progress) {
     # Monitoring the progress
     pb <- txtProgressBar(min=1, max=length(l), style=3)
@@ -147,11 +180,11 @@ mnp<-function(l, f, combine, cluster, cluster.keep.open = F, monitor.progress = 
     print("PS cluster has already been built. Skip building.")
     cl<-cluster
   } else {
-    cl<-start_mnp(cluster = cluster)
+    cl<-start_mnp(cluster = cluster, cluster.type = cluster.type)
   }
-
+  
   if(!is.null(export.vars)) {
-    parallel::clusterExport(cl = cl$bin$cluster, varlist = export.vars, envir = environment())
+    parallel::clusterExport(cl = cl$bin$cluster, varlist = export.vars, envir = env)
   }
   
   out <- tryCatch({
